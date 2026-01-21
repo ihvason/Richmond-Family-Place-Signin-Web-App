@@ -39,7 +39,7 @@ The app stores data in a flattened format to support robust analytics:
 
 1. **Google Sheets**: Create a sheet named `Sheet1` with appropriate headers.
 2. **Apps Script**: 
-    - Copy the `Code.gs` into a new GAS project.
+    - Copy the `gsheetapp.gs` into a new GAS project.
     - Deploy as a **Web App** with "Anyone" having access.
 3. **Frontend**:
     - Update the `scriptURL` in `index.html` with your deployed GAS URL.
