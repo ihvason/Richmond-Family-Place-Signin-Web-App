@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Sign In - Richmond Family Place</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rfpGreen: '#8CC63F',
+                        rfpBlue: '#00AEEF',
+                        rfpDark: '#58595B',
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                    },
+                    spacing: {
+                        'safe-top': 'env(safe-area-inset-top)',
+                        'safe-bottom': 'env(safe-area-inset-bottom)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @keyframes floatUpFade { 0% { transform: translateY(20px) scale(0.8); opacity: 0; } 20% { opacity: 0.8; } 100% { transform: translateY(-60px) scale(1.1); opacity: 0; } }
+        .floating-element { position: absolute; bottom: 0; opacity: 0; animation: floatUpFade 3s ease-in-out infinite; }
+        .house-container { animation: gentleBounce 2.5s ease-in-out infinite; }
+        @keyframes gentleBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .btn-donate-pulse { animation: heartbeat 2s infinite; }
+        @keyframes heartbeat { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(140, 198, 63, 0.7); } 50% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(140, 198, 63, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(140, 198, 63, 0); } }
+        
+        input, select, textarea { font-size: 16px !important; -webkit-appearance: none; box-shadow: none !important; }
+        .list-enter-active, .list-leave-active { transition: all 0.3s ease; }
+        .list-enter-from, .list-leave-to { opacity: 0; transform: translateX(-10px); }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-[100dvh] flex flex-col font-sans text-rfpDark pb-safe-bottom">
+
+    <div id="app" class="flex-grow w-full overflow-y-auto">
+        <div class="min-h-full flex items-center justify-center p-2 sm:p-3">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden relative my-auto">
+                <div class="h-1.5 w-full bg-gradient-to-r from-rfpGreen to-rfpBlue"></div>
+
+                <div class="p-4">
+                    
+                    <div v-if="!signedIn" class="transition-opacity duration-500">
+                        <div class="flex items-center justify-between mb-4 border-b border-gray-50 pb-2 min-h-[50px]">
+                            <div class="text-left pr-2 flex-grow">
+                                <h2 class="text-xl font-bold text-rfpDark leading-tight">Welcome!</h2>
+                                <p class="text-gray-400 text-[10px] mt-0.5">Please sign in below</p>
+                            </div>
+                            <img src="https://richmondfamilyplace.ca/wp-content/uploads/2021/03/Richmond-Family-Place-Logo-Hi-def.png" alt="Richmond Family Place" class="w-24 object-contain flex-shrink-0">
+                        </div>
+
+                        <div v-if="hasSavedData" class="bg-blue-50 border-l-4 border-rfpBlue text-rfpBlue p-2 rounded text-xs mb-3 flex items-start">
+                            <i class="fa-solid fa-wand-magic-sparkles mt-0.5 mr-2"></i>
+                            <div class="leading-tight">
+                                <p class="font-bold">Welcome back!</p>
+                                <p class="opacity-80">Info autofilled.</p>
+                            </div>
+                        </div>
+
+                        <form @submit.prevent="handleSignIn" class="space-y-3" novalidate>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Family Name <span class="text-red-500">*</span></label>
+                                <input v-model="form.familyName" @input="errors.familyName = false" :class="errors.familyName ? 'border-red-500 ring-1 ring-red-100 bg-red-50 shake' : 'border-gray-200 bg-gray-50 focus:border-rfpBlue focus:bg-white focus:ring-2 focus:ring-blue-100'" type="text" class="text-base w-full px-3 py-2 rounded-lg border outline-none transition">
+                            </div>
+
+                            <div>
+                                <div class="mb-1 flex justify-between items-end">
+                                    <label class="block text-xs font-bold text-gray-600">Adult Name <span class="text-red-500">*</span></label>
+                                    <span class="text-[9px] text-gray-400 italic">Sign-in all present</span>
+                                </div>
+                                <div class="space-y-2">
+                                    <div v-for="(adult, index) in form.adults" :key="index">
+                                        <div class="flex gap-2">
+                                            <input v-model="form.adults[index]" @input="errors.adults[index] = false" :class="errors.adults[index] ? 'border-red-500 ring-1 ring-red-100 bg-red-50 shake' : 'border-gray-200 bg-gray-50 focus:border-rfpBlue focus:bg-white focus:ring-2 focus:ring-blue-100'" type="text" class="text-base flex-grow px-3 py-2 rounded-lg border outline-none transition">
+                                            <button v-if="form.adults.length > 1" type="button" @click="removeAdult(index)" class="w-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition touch-manipulation"><i class="fa-solid fa-trash-can"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" @click="addAdult" class="w-full mt-2 py-2 border-2 border-dashed border-gray-300 text-gray-400 rounded-lg hover:border-rfpBlue hover:text-rfpBlue hover:bg-blue-50 transition font-bold text-[11px] flex items-center justify-center touch-manipulation"><i class="fa-solid fa-plus mr-1.5"></i> Add Adult</button>
+                            </div>
+
+                            <div class="pt-0.5">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Child Name <span class="text-red-500">*</span></label>
+                                <div class="space-y-2">
+                                    <transition-group name="list">
+                                        <div v-for="(child, index) in form.children" :key="index" :class="errors.children[index] ? 'border-red-300 ring-1 ring-red-100 shake' : 'border-gray-200'" class="bg-white border rounded-lg p-2.5 shadow-sm relative transition-colors">
+                                            <div class="flex gap-2 mb-2">
+                                                <input v-model="child.name" @input="errors.children[index] = false" :class="errors.children[index] && !child.name ? 'bg-red-50 border-red-300' : 'bg-gray-50 border-gray-200 focus:bg-white focus:border-rfpGreen focus:ring-green-100'" type="text" class="text-base flex-grow px-3 py-2 rounded-lg border outline-none transition">
+                                                <button v-if="form.children.length > 1" type="button" @click="removeChild(index)" class="w-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition touch-manipulation"><i class="fa-solid fa-trash-can"></i></button>
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <button type="button" v-for="age in ['0-35 Months', '3-5 Years', '6+ Years']" :key="age" @click="child.age = age; errors.children[index] = false" :class="[child.age === age ? 'border-rfpGreen bg-rfpGreen text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-200', errors.children[index] && !child.age ? 'border-red-300 bg-red-50 text-red-400' : 'border']" class="py-2 text-[11px] font-bold rounded-lg transition touch-manipulation leading-tight">{{ age }}</button>
+                                            </div>
+                                        </div>
+                                    </transition-group>
+                                </div>
+                                <button type="button" @click="addChild" class="w-full mt-2 py-2 border-2 border-dashed border-gray-300 text-gray-400 rounded-lg hover:border-rfpGreen hover:text-rfpGreen hover:bg-green-50 transition font-bold text-[11px] flex items-center justify-center touch-manipulation"><i class="fa-solid fa-plus mr-1.5"></i> Add Child</button>
+                            </div>
+
+                            <div class="space-y-2 pt-1">
+                                <div>
+                                    <div class="flex items-center justify-between mb-1"><span class="text-xs font-bold text-gray-600">Which Site? <span class="text-red-500">*</span></span></div>
+                                    <div class="grid grid-cols-2 gap-2" :class="errors.site ? 'p-1 bg-red-50 rounded-lg ring-1 ring-red-200 shake' : ''">
+                                        <button type="button" @click="form.site = 'Main Site'; errors.site = false" :class="form.site === 'Main Site' ? 'bg-rfpGreen text-white shadow-md border-rfpGreen' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'" class="py-2 rounded-lg border text-[11px] font-bold transition touch-manipulation">Main Site</button>
+                                        <button type="button" @click="form.site = 'City Centre'; errors.site = false" :class="form.site === 'City Centre' ? 'bg-rfpGreen text-white shadow-md border-rfpGreen' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'" class="py-2 rounded-lg border text-[11px] font-bold transition touch-manipulation">City Centre</button>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <div class="flex-1">
+                                        <span class="block text-xs font-bold text-gray-600 mb-1 truncate">First Time Visiting? <span class="text-red-500">*</span></span>
+                                        <div class="flex gap-1" :class="errors.firstVisit ? 'p-1 bg-red-50 rounded-lg ring-1 ring-red-200 shake' : ''">
+                                            <button type="button" @click="form.firstVisit = 'Yes'; errors.firstVisit = false" :class="form.firstVisit === 'Yes' ? 'bg-rfpGreen text-white shadow-sm border-rfpGreen' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'" class="flex-1 py-2 rounded-lg border text-[11px] font-bold transition">Yes</button>
+                                            <button type="button" @click="form.firstVisit = 'No'; errors.firstVisit = false" :class="form.firstVisit === 'No' ? 'bg-rfpGreen text-white shadow-sm border-rfpGreen' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'" class="flex-1 py-2 rounded-lg border text-[11px] font-bold transition">No</button>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <span class="block text-xs font-bold text-gray-600 mb-1 truncate">Membership? <span class="text-red-500">*</span></span>
+                                        <div class="flex gap-1" :class="errors.membership ? 'p-1 bg-red-50 rounded-lg ring-1 ring-red-200 shake' : ''">
+                                            <button type="button" @click="form.membership = 'Yes'; errors.membership = false" :class="form.membership === 'Yes' ? 'bg-rfpGreen text-white shadow-sm border-rfpGreen' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'" class="flex-1 py-2 rounded-lg border text-[11px] font-bold transition">Yes</button>
+                                            <button type="button" @click="form.membership = 'No'; errors.membership = false" :class="form.membership === 'No' ? 'bg-rfpGreen text-white shadow-sm border-rfpGreen' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'" class="flex-1 py-2 rounded-lg border text-[11px] font-bold transition">No</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Contact Number <span class="text-gray-400 font-normal">(Optional)</span></label>
+                                    <input v-model="form.contactNumber" type="tel" class="text-base w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:border-rfpBlue focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition">
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between items-center bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 mt-1">
+                                <label class="block text-xs font-bold text-rfpBlue">Total People</label>
+                                <div class="flex items-center space-x-2 bg-white rounded-full p-0.5 shadow-sm">
+                                    <button type="button" @click="form.totalPeople > 1 ? form.totalPeople-- : null" class="w-7 h-7 rounded-full bg-gray-100 text-gray-500 hover:text-rfpBlue font-bold flex items-center justify-center text-base touch-manipulation">-</button>
+                                    <span class="text-base font-bold w-5 text-center text-rfpDark">{{ form.totalPeople }}</span>
+                                    <button type="button" @click="form.totalPeople++" class="w-7 h-7 rounded-full bg-rfpBlue text-white hover:bg-blue-500 font-bold flex items-center justify-center text-base shadow-sm touch-manipulation">+</button>
+                                </div>
+                            </div>
+
+                            <div class="pt-1">
+                                <button type="submit" :disabled="isSubmitting" :class="isSubmitting ? 'bg-gray-400 cursor-not-allowed opacity-70' : 'bg-rfpBlue hover:bg-blue-500 transform active:scale-98'" class="w-full text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200 text-lg flex items-center justify-center touch-manipulation">
+                                    <span v-if="!isSubmitting">Sign In</span>
+                                    <span v-else class="flex items-center"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Signing In...</span>
+                                </button>
+                                <p class="text-[9px] text-gray-300 text-center mt-3 px-1 leading-tight tracking-tight">Information for statistics only. All identifying information will be kept strictly confidential.</p>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div v-else class="text-center pt-0 pb-0">
+                        <div class="flex items-center justify-between mb-4 border-b border-gray-50 pb-2 min-h-[50px]">
+                            <div class="text-left pr-2 flex-grow">
+                                <h2 class="text-xl font-bold text-rfpDark leading-tight">{{ successTitle }}</h2>
+                                <div class="inline-block bg-blue-50 text-rfpBlue px-3 py-1.5 rounded-lg text-xs font-bold mt-2 border border-blue-100 text-left">
+                                    <div class="truncate"><i class="fa-regular fa-calendar-check mr-1.5"></i>{{ signInDisplay }}</div>
+                                </div>
+                            </div>
+                            <img src="https://richmondfamilyplace.ca/wp-content/uploads/2021/03/Richmond-Family-Place-Logo-Hi-def.png" alt="Richmond Family Place" class="w-24 object-contain flex-shrink-0">
+                        </div>
+
+                        <div class="relative h-28 flex justify-center items-end mb-4 mt-2">
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-green-100 rounded-full filter blur-2xl opacity-60"></div>
+                            <div class="house-container relative z-10"><i class="fa-solid fa-house-chimney-user text-6xl text-rfpGreen drop-shadow-sm"></i></div>
+                            <i class="fa-solid fa-heart text-rfpBlue text-2xl floating-element" style="left: 30%; animation-delay: 0.2s;"></i>
+                            <i class="fa-solid fa-face-smile text-rfpGreen text-3xl floating-element" style="left: 50%; animation-delay: 0.8s; bottom: 20px;"></i>
+                        </div>
+                        
+                        <div class="text-base text-gray-600 mb-6 border-b border-gray-100 pb-4">
+                            <p class="font-bold text-lg text-rfpDark">Enjoy your time!</p>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Signed in as: <span class="font-bold text-rfpDark text-base">{{ form.familyName }}</span>
+                                <br>({{ form.adults.length }} Adults, {{ form.children.length }} Children)
+                            </p>
+                        </div>
+
+                        <div class="space-y-3">
+                            <a href="https://richmondfamilyplace.ca/donation/" target="_blank" class="btn-donate-pulse block w-full bg-rfpGreen hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center transition transform active:scale-95 touch-manipulation"><i class="fa-solid fa-heart mr-2 animate-pulse"></i> <span>Donate Today</span></a>
+                            
+                            <a href="https://richmondfamilyplace.ca/membership/" target="_blank" class="block w-full border-2 border-rfpBlue text-rfpBlue hover:bg-blue-50 font-bold py-3 rounded-xl flex items-center justify-center transition touch-manipulation"><i class="fa-solid fa-id-card mr-2"></i> <span>Join or Renew Membership</span></a>
+                            
+                            <a href="https://richmondfamilyplace.ca/calendar/" target="_blank" class="block w-full border-2 border-rfpBlue text-rfpBlue hover:bg-blue-50 font-bold py-3 rounded-xl flex items-center justify-center transition touch-manipulation"><i class="fa-solid fa-calendar-days mr-2"></i> <span>View Our Calendar</span></a>
+
+                            <div class="grid grid-cols-4 gap-2 pt-2 px-1">
+                                <a href="tel:6042784336" class="flex flex-col items-center text-gray-400 hover:text-rfpGreen transition group touch-manipulation"><div class="w-10 h-10 rounded-full bg-gray-50 group-hover:bg-green-50 flex items-center justify-center text-lg mb-1 transition border border-gray-100"><i class="fa-solid fa-phone"></i></div><span class="text-[10px] font-bold">Call</span></a>
+                                <a href="mailto:info@richmondfamilyplace.ca" class="flex flex-col items-center text-gray-400 hover:text-rfpBlue transition group touch-manipulation"><div class="w-10 h-10 rounded-full bg-gray-50 group-hover:bg-blue-50 flex items-center justify-center text-lg mb-1 transition border border-gray-100"><i class="fa-solid fa-envelope"></i></div><span class="text-[10px] font-bold">Email</span></a>
+                                <a href="https://www.instagram.com/richmondfamilyplace/?hl=en" target="_blank" class="flex flex-col items-center text-gray-400 hover:text-pink-600 transition group touch-manipulation"><div class="w-10 h-10 rounded-full bg-gray-50 group-hover:bg-pink-50 flex items-center justify-center text-lg mb-1 transition border border-gray-100"><i class="fa-brands fa-instagram"></i></div><span class="text-[10px] font-bold">Instagram</span></a>
+                                <a href="https://www.facebook.com/richmondfamilyplace/" target="_blank" class="flex flex-col items-center text-gray-400 hover:text-blue-700 transition group touch-manipulation"><div class="w-10 h-10 rounded-full bg-gray-50 group-hover:bg-blue-50 flex items-center justify-center text-lg mb-1 transition border border-gray-100"><i class="fa-brands fa-facebook-f"></i></div><span class="text-[10px] font-bold">Facebook</span></a>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 border-t border-gray-100 pt-3 text-center relative group">
+                             <p class="text-[8px] text-gray-300 leading-relaxed font-medium">
+                                We are grateful to work, play, and live on the traditional territories of the xʷməθkwəy̓ əm (Musqueam), Skwxwú7mesh (Squamish), sel̓íl̓witulh (Tsleil-waututh) and hən̓ q̓ əmin̓ əm̓ speaking people. We acknowledge their faithful stewardship of these lands and thank them for their generous welcome.
+                                <span class="block mt-1 font-bold">c̓∙iθamə cən (Thank You)</span>
+                             </p>
+                             <button type="button" @click="clearInfo" class="absolute bottom-0 right-0 text-[8px] text-gray-100 hover:text-gray-400 transition pb-1">reset</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    signedIn: false,
+                    signInDisplay: '', 
+                    successTitle: "You're Checked In!", // 🆕 新增变量
+                    hasSavedData: false,
+                    isSubmitting: false, 
+                    isPageUnloading: false, 
+                    form: {
+                        site: '', 
+                        familyName: '',
+                        adults: [''],      
+                        children: [        
+                            { name: '', age: '' }
+                        ],
+                        firstVisit: '',  
+                        membership: '',  
+                        contactNumber: '', 
+                        totalPeople: 2
+                    },
+                    errors: {
+                        site: false,
+                        familyName: false,
+                        firstVisit: false,
+                        membership: false,
+                        adults: [],
+                        children: []
+                    }
+                }
+            },
+            mounted() {
+                window.addEventListener('beforeunload', () => {
+                    this.isPageUnloading = true;
+                });
+
+                const todayStr = new Date().toLocaleDateString('en-CA');
+                const lastSignDate = localStorage.getItem('rfpLastDate');
+
+                if (lastSignDate === todayStr) {
+                    const savedData = localStorage.getItem('rfpUser');
+                    if (savedData) this.hydrateForm(JSON.parse(savedData));
+                    this.signInDisplay = localStorage.getItem('rfpSignInDisplay') || 'Checked In';
+                    
+                    // 🆕 逻辑：如果是回头客，显示不同的标题
+                    this.successTitle = "Already Checked in Today!";
+                    this.signedIn = true; 
+                } else {
+                    this.loadFromStorage();
+                }
+            },
+            methods: {
+                addAdult() {
+                    this.form.adults.push('');
+                    this.form.totalPeople++;
+                    this.errors.adults.push(false);
+                },
+                removeAdult(index) {
+                    this.form.adults.splice(index, 1);
+                    this.form.totalPeople--;
+                    this.errors.adults.splice(index, 1);
+                },
+                addChild() {
+                    this.form.children.push({ name: '', age: '' });
+                    this.form.totalPeople++;
+                    this.errors.children.push(false);
+                },
+                removeChild(index) {
+                    this.form.children.splice(index, 1);
+                    this.form.totalPeople--;
+                    this.errors.children.splice(index, 1);
+                },
+                loadFromStorage() {
+                    const savedData = localStorage.getItem('rfpUser');
+                    if (savedData) {
+                        try {
+                            const parsed = JSON.parse(savedData);
+                            parsed.firstVisit = 'No'; 
+                            parsed.site = ''; 
+                            this.hydrateForm(parsed);
+                            this.hasSavedData = true;
+                        } catch (e) { localStorage.removeItem('rfpUser'); }
+                    }
+                },
+                hydrateForm(data) {
+                    if (data.site) this.form.site = data.site;
+                    if (data.familyName) this.form.familyName = data.familyName;
+                    if (data.membership) this.form.membership = data.membership;
+                    if (data.contactNumber) this.form.contactNumber = data.contactNumber;
+                    
+                    if (data.adultName && !data.adults) this.form.adults = [data.adultName];
+                    else if (data.adults && Array.isArray(data.adults)) this.form.adults = data.adults;
+
+                    if (data.childName && !data.children) {
+                        let oldAge = data.childAge || '';
+                        if (!['0-35 Months', '3-5 Years', '6+ Years'].includes(oldAge)) oldAge = ''; 
+                        this.form.children = [{ name: data.childName, age: oldAge }];
+                    } else if (data.children && Array.isArray(data.children)) {
+                        this.form.children = data.children;
+                    }
+
+                    if (data.totalPeople) this.form.totalPeople = data.totalPeople;
+                },
+                resetErrors() {
+                    this.errors = {
+                        site: false,
+                        familyName: false,
+                        firstVisit: false,
+                        membership: false,
+                        adults: this.form.adults.map(() => false),
+                        children: this.form.children.map(() => false)
+                    };
+                },
+                validateForm() {
+                    let isValid = true;
+                    
+                    if (!this.form.site) { this.errors.site = true; isValid = false; }
+                    if (!this.form.familyName.trim()) { this.errors.familyName = true; isValid = false; }
+                    
+                    if (!this.form.firstVisit) { this.errors.firstVisit = true; isValid = false; }
+                    if (!this.form.membership) { this.errors.membership = true; isValid = false; }
+
+                    this.form.adults.forEach((adult, index) => {
+                        if (!adult.trim()) { this.errors.adults[index] = true; isValid = false; }
+                    });
+                    this.form.children.forEach((child, index) => {
+                        if (!child.name.trim() || !child.age) { this.errors.children[index] = true; isValid = false; }
+                    });
+
+                    return isValid;
+                },
+                clearInfo() {
+                    if (confirm('Clear ALL saved data? This will let you sign in again immediately.')) {
+                        localStorage.removeItem('rfpUser'); 
+                        localStorage.removeItem('rfpLastDate'); 
+                        localStorage.removeItem('rfpSignInDisplay'); 
+                        this.signedIn = false; 
+                        this.hasSavedData = false;
+                        
+                        // Reset lock and title
+                        this.isSubmitting = false; 
+                        this.successTitle = "You're Checked In!";
+                        
+                        this.form = { site: '', familyName:'', adults:[''], children:[{name:'', age:''}], firstVisit:'', membership:'', contactNumber: '', totalPeople: 2 };
+                        this.errors = { site: false, familyName: false, firstVisit: false, membership: false, adults: [], children: [] };
+                    }
+                },
+                handleSignIn() {
+                    if (this.isSubmitting) return;
+
+                    this.resetErrors();
+
+                    setTimeout(() => {
+                        if (!this.validateForm()) return;
+
+                        this.isSubmitting = true;
+
+                        const scriptURL = 'https://script.google.com/macros/s/AKfycbxF55Xd5f1OuvFeUyEudKPV3sz3yVmxFAUFdJfOKNBbtuMuseNWtSXjwpsBIK-Ud-Uj/exec'; 
+
+                        const formData = new FormData();
+                        formData.append('site', this.form.site);
+                        formData.append('adultName', this.form.adults.join(', '));
+                        formData.append('familyName', this.form.familyName);
+                        formData.append('childName', this.form.children.map(c => c.name).join(', '));
+                        formData.append('childAge', this.form.children.map(c => c.age).join(', '));
+                        formData.append('firstVisit', this.form.firstVisit);
+                        formData.append('membership', this.form.membership);
+                        formData.append('contactNumber', this.form.contactNumber);
+                        formData.append('totalPeople', this.form.totalPeople);
+
+                        const now = new Date();
+                        const dateStr = now.toLocaleDateString('en-CA');
+                        const dateDisplay = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const timeDisplay = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                        const fullDisplayStr = `${this.form.site} • ${dateDisplay} • ${timeDisplay}`;
+                        
+                        const dataToSave = { ...this.form, firstVisit: 'No' }; 
+                        localStorage.setItem('rfpUser', JSON.stringify(dataToSave));
+                        localStorage.setItem('rfpLastDate', dateStr);
+                        localStorage.setItem('rfpSignInDisplay', fullDisplayStr);
+
+                        this.signInDisplay = fullDisplayStr;
+                        // 🆕 刚提交成功，显示标准标题
+                        this.successTitle = "You're Checked In!";
+                        this.signedIn = true; 
+
+                        fetch(scriptURL, { 
+                            method: 'POST', 
+                            body: formData, 
+                            mode: 'no-cors',
+                            keepalive: true 
+                        })
+                        .catch(err => {
+                            if (!this.isPageUnloading) console.log('Background sync error', err);
+                        })
+                        .finally(() => {
+                            this.isSubmitting = false;
+                        }); 
+                    }, 50); 
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
